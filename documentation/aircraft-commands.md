@@ -182,7 +182,7 @@ radial. You may override this by specifying any of: the direction of the hold
 heading for the outbound radial.
 
 _Parameters -_
-Specify the the fix to hold over with simply `[fixname]`.  
+Specify the the fix to hold over with simply `[fixname]`.
 Optionally, you may also specify:
 
 -   the direction of turns during the hold with `left`, `l`, `right`, or `r`
