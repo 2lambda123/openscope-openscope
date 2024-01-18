@@ -1,15 +1,16 @@
-import _compact from 'lodash/compact';
-import _forEach from 'lodash/forEach';
-import _isString from 'lodash/isString';
-import _map from 'lodash/map';
-import _tail from 'lodash/tail';
-import AircraftCommandModel from '../aircraftCommand/AircraftCommandModel';
+import _compact from "lodash/compact";
+import _forEach from "lodash/forEach";
+import _isString from "lodash/isString";
+import _map from "lodash/map";
+import _tail from "lodash/tail";
+
+import { PARSED_COMMAND_NAME } from "../../constants/inputConstants";
 import {
     AIRCRAFT_COMMAND_MAP,
-    findCommandNameWithAlias
-} from '../aircraftCommand/aircraftCommandMap';
-import { PARSED_COMMAND_NAME } from '../../constants/inputConstants';
-import ParsedCommand from '../ParsedCommand';
+    findCommandNameWithAlias,
+} from "../aircraftCommand/aircraftCommandMap";
+import AircraftCommandModel from "../aircraftCommand/AircraftCommandModel";
+import ParsedCommand from "../ParsedCommand";
 
 /**
  * Symbol used to split the command string as it enters the class.
@@ -18,43 +19,49 @@ import ParsedCommand from '../ParsedCommand';
  * @type {string}
  * @final
  */
-const COMMAND_ARGS_SEPARATOR = ' ';
+const COMMAND_ARGS_SEPARATOR = " ";
 
 /**
- * This class is responsible for taking the content of the `$commandInput` and parsing it
- * out into commands and arguments.
+ * This class is responsible for taking the content of the `$commandInput` and
+ * parsing it out into commands and arguments.
  *
- * Everything this class needs comes in as a single string provided by `InputController.input_run()`.
- * ex:
+ * Everything this class needs comes in as a single string provided by
+ * `InputController.input_run()`. ex:
  * - `timewarp 50`
  * - `AA777 fh 0270 d 050 sp 200`
  * - `AA777 hold dumba left 2min`
  *
- * **Differentiation of commands and arguments is determined by splitting the string on an empty space. This
- * is very important, so legacy commands did not have spaces between the command and argument. With this
- * implementation _every_ command shall have a space between itself and it's arguments.**
+ * **Differentiation of commands and arguments is determined by splitting the
+ * string on an empty space. This is very important, so legacy commands did not
+ * have spaces between the command and argument. With this implementation
+ * _every_ command shall have a space between itself and it's arguments.**
  *
  * Commands are broken out into two categories: `System` and `Transmit`.
- * - System commands are zero or single argument commands that are used for interacting with the app
- *   itself. Things like `timewarp` or `tutorial` are examples of system commands.
+ * - System commands are zero or single argument commands that are used for
+ * interacting with the app itself. Things like `timewarp` or `tutorial` are
+ * examples of system commands.
  *
- * - Transmit commands are instructions meant for a specific aircraft within the controlled airspace.
- *   These commands can have zero to many arguments, depending on the command. Some examples of transmit
- *   commands are `to`, `taxi`, `hold`.
+ * - Transmit commands are instructions meant for a specific aircraft within the
+ * controlled airspace. These commands can have zero to many arguments,
+ * depending on the command. Some examples of transmit commands are `to`,
+ * `taxi`, `hold`.
  *
  * Commands go through a lifecycle as they move from raw to parsed:
  * - user types command and presses enter
- * - command string is captured via input value, then passed as an argument to this class
+ * - command string is captured via input value, then passed as an argument to
+ * this class
  * - determine if command string is a `System Command` or `Transmit`
- * - creation of `AircraftCommandModel` objects for each command/argument group found
+ * - creation of `AircraftCommandModel` objects for each command/argument group
+ * found
  * - validate command arguments (number of arguments and data type)
  * - parse command arguments
  *
- * All available commands are defined in the `commandMap`. Two terms of note are alias and root command.
- * We would call the `takeoff` command a root command and `to` and `cto` aliases. The root command is the
- * one that shares the same key as the command definition which gives us the correct validator and parser.
- * The root command is also what the `AircraftModel` is expecting when it receives commands
- * from the `InputController`.
+ * All available commands are defined in the `commandMap`. Two terms of note are
+ * alias and root command. We would call the `takeoff` command a root command
+ * and `to` and `cto` aliases. The root command is the one that shares the same
+ * key as the command definition which gives us the correct validator and
+ * parser. The root command is also what the `AircraftModel` is expecting when
+ * it receives commands from the `InputController`.
  *
  * @class CommandParser
  */
@@ -62,13 +69,16 @@ export default class CommandParser {
     /**
      * @constructor
      * @for CommandParser
-     * @param rawCommandWithArgs {string}  string present in the `$commandInput` when the user pressed `enter`
+     * @param rawCommandWithArgs {string}  string present in the `$commandInput`
+     *     when the user pressed `enter`
      */
-    constructor(rawCommandWithArgs = '') {
+    constructor(rawCommandWithArgs = "") {
         if (!_isString(rawCommandWithArgs)) {
             // istanbul ignore next
             // eslint-disable-next-line max-len
-            throw new TypeError(`Invalid parameter. AircraftCommandParser expects a string but received ${typeof rawCommandWithArgs}`);
+            throw new TypeError(
+                `Invalid parameter. AircraftCommandParser expects a string but received ${typeof rawCommandWithArgs}`,
+            );
         }
 
         /**
@@ -76,13 +86,13 @@ export default class CommandParser {
          *
          * Could be either Transmit or a System command
          *
-         * This is consumed by the `InputController` after parsing here and is used to
-         * determine what to do with the parsed command(s)
+         * This is consumed by the `InputController` after parsing here and is used
+         * to determine what to do with the parsed command(s)
          *
          * @type {string}
          * @default ''
          */
-        this.command = '';
+        this.command = "";
 
         /**
          * Aircraft callsign
@@ -92,14 +102,15 @@ export default class CommandParser {
          * @type {string}
          * @default ''
          */
-        this.callsign = '';
+        this.callsign = "";
 
         /**
          * List of `AircraftCommandModel` objects.
          *
-         * Each command is contained within a `AircraftCommandModel`, even System commands. This provides
-         * a consistent interface for obtaining commands and arguments (via getter) and also
-         * aloows for easy implementation of the legacy API structure.
+         * Each command is contained within a `AircraftCommandModel`, even System
+         * commands. This provides a consistent interface for obtaining commands and
+         * arguments (via getter) and also aloows for easy implementation of the
+         * legacy API structure.
          *
          * @type {array<AircraftCommandModel>}
          */
@@ -117,7 +128,8 @@ export default class CommandParser {
     }
 
     /**
-     * Accept the entire string provided to the constructor and attempt to break it up into:
+     * Accept the entire string provided to the constructor and attempt to break
+     * it up into:
      * - System command and its arguments
      * - Transmit commands and thier arguments
      *
@@ -128,9 +140,13 @@ export default class CommandParser {
      */
     _extractCommandsAndArgs(rawCommandWithArgs) {
         const commandOrCallsignIndex = 0;
-        const commandArgSegmentsWithCallsign = rawCommandWithArgs.split(COMMAND_ARGS_SEPARATOR);
-        const callsignOrSystemCommandName = commandArgSegmentsWithCallsign[commandOrCallsignIndex];
-        // effectively a slice of the array that returns everything but the first item
+        const commandArgSegmentsWithCallsign = rawCommandWithArgs.split(
+            COMMAND_ARGS_SEPARATOR,
+        );
+        const callsignOrSystemCommandName =
+            commandArgSegmentsWithCallsign[commandOrCallsignIndex];
+        // effectively a slice of the array that returns everything but the first
+        // item
         const commandArgSegments = _tail(commandArgSegmentsWithCallsign);
 
         if (this._isSystemCommand(callsignOrSystemCommandName)) {
@@ -139,11 +155,15 @@ export default class CommandParser {
             return;
         }
 
-        this._buildTransmitAircraftCommandModels(callsignOrSystemCommandName, commandArgSegments);
+        this._buildTransmitAircraftCommandModels(
+            callsignOrSystemCommandName,
+            commandArgSegments,
+        );
     }
 
     /**
-     * Build a `AircraftCommandModel` for a System command then add that model to the `commandList`
+     * Build a `AircraftCommandModel` for a System command then add that model to
+     * the `commandList`
      *
      * @for CommandParser
      * @method _buildSystemCommandModel
@@ -156,9 +176,9 @@ export default class CommandParser {
         const commandArgs = commandArgSegments[argIndex];
         const aircraftCommandModel = new AircraftCommandModel(commandName);
 
-        // undefined will happen with zeroArgument system commands, so we check for that here
-        // and add only when args are defined
-        if (typeof commandArgs !== 'undefined') {
+        // undefined will happen with zeroArgument system commands, so we check for
+        // that here and add only when args are defined
+        if (typeof commandArgs !== "undefined") {
             aircraftCommandModel.args.push(commandArgs);
         }
 
@@ -169,11 +189,15 @@ export default class CommandParser {
     }
 
     /**
-     * Build `AircraftCommandModel` objects for each transmit commands then add them to the `commandList`
+     * Build `AircraftCommandModel` objects for each transmit commands then add
+     * them to the `commandList`
      *
      * @private
      */
-    _buildTransmitAircraftCommandModels(callsignOrSystemCommandName, commandArgSegments) {
+    _buildTransmitAircraftCommandModels(
+        callsignOrSystemCommandName,
+        commandArgSegments,
+    ) {
         this.command = PARSED_COMMAND_NAME.TRANSMIT;
         this.callsign = callsignOrSystemCommandName;
         this.commandList = this._buildCommandList(commandArgSegments);
@@ -182,17 +206,20 @@ export default class CommandParser {
     }
 
     /**
-     * Loop through the commandArgSegments array and either create a new `AircraftCommandModel` or add
-     * arguments to a `AircraftCommandModel`.
+     * Loop through the commandArgSegments array and either create a new
+     * `AircraftCommandModel` or add arguments to a `AircraftCommandModel`.
      *
-     * commandArgSegments will contain both commands and arguments (very contrived example):
+     * commandArgSegments will contain both commands and arguments (very contrived
+     * example):
      * - `[cmd, arg, arg, cmd, cmd, arg, arg, arg]`
      *
      * this method is expecting that
-     * the first item it receives, that is not a space, is a command. we then push each successive
-     * array item to the args array until we find another command. then we repeat the process.
+     * the first item it receives, that is not a space, is a command. we then push
+     * each successive array item to the args array until we find another command.
+     * then we repeat the process.
      *
-     * this allows us to create several `AircraftCommandModel` with arguments and only loop over them once.
+     * this allows us to create several `AircraftCommandModel` with arguments and
+     * only loop over them once.
      *
      * @for CommandParser
      * @method _buildCommandList
@@ -207,28 +234,28 @@ export default class CommandParser {
         for (let i = 0; i < commandArgSegments.length; i++) {
             const commandOrArg = commandArgSegments[i];
 
-            if (commandOrArg === '') {
+            if (commandOrArg === "") {
                 continue;
             }
 
             const commandName = findCommandNameWithAlias(commandOrArg);
 
-            if (typeof aircraftCommandModel === 'undefined') {
-                if (typeof commandName === 'undefined') {
+            if (typeof aircraftCommandModel === "undefined") {
+                if (typeof commandName === "undefined") {
                     continue;
                 }
 
                 aircraftCommandModel = new AircraftCommandModel(commandName);
                 // hack for #1821
-                if (commandName === 'heading') {
-                    if (commandOrArg === 'tl') {
-                        aircraftCommandModel.args.push('l');
-                    } else if (commandOrArg === 'tr') {
-                        aircraftCommandModel.args.push('r');
+                if (commandName === "heading") {
+                    if (commandOrArg === "tl") {
+                        aircraftCommandModel.args.push("l");
+                    } else if (commandOrArg === "tr") {
+                        aircraftCommandModel.args.push("r");
                     }
                 }
             } else {
-                if (typeof commandName === 'undefined') {
+                if (typeof commandName === "undefined") {
                     aircraftCommandModel.args.push(commandOrArg);
 
                     continue;
@@ -238,11 +265,11 @@ export default class CommandParser {
 
                 aircraftCommandModel = new AircraftCommandModel(commandName);
                 // hack for #1821
-                if (commandName === 'heading') {
-                    if (commandOrArg === 'tl') {
-                        aircraftCommandModel.args.push('l');
-                    } else if (commandOrArg === 'tr') {
-                        aircraftCommandModel.args.push('r');
+                if (commandName === "heading") {
+                    if (commandOrArg === "tl") {
+                        aircraftCommandModel.args.push("l");
+                    } else if (commandOrArg === "tr") {
+                        aircraftCommandModel.args.push("r");
                     }
                 }
             }
@@ -255,7 +282,8 @@ export default class CommandParser {
     }
 
     /**
-     * Fire off the `_validateCommandArguments` method and throws any errors returned
+     * Fire off the `_validateCommandArguments` method and throws any errors
+     * returned
      *
      * @for CommandParser
      * @method _validateAndParseCommandArguments
@@ -272,8 +300,8 @@ export default class CommandParser {
     }
 
     /**
-     * For each `AircraftCommandModel` in the `commandList`, first validate it's arguments
-     * then parse those arguments into a consumable array.
+     * For each `AircraftCommandModel` in the `commandList`, first validate it's
+     * arguments then parse those arguments into a consumable array.
      *
      * @for CommandParser
      * @method _validateCommandArguments
@@ -281,7 +309,7 @@ export default class CommandParser {
      */
     _validateCommandArguments() {
         const validatedCommandList = _map(this.commandList, (command) => {
-            if (typeof command === 'undefined') {
+            if (typeof command === "undefined") {
                 return null;
             }
 
@@ -300,8 +328,8 @@ export default class CommandParser {
     }
 
     /**
-     * Encapsulation of boolean logic used to determine if the `callsignOrSystemCommandName`
-     * is in fact a system command.
+     * Encapsulation of boolean logic used to determine if the
+     * `callsignOrSystemCommandName` is in fact a system command.
      *
      *
      * @for CommandParser
@@ -312,10 +340,13 @@ export default class CommandParser {
     _isSystemCommand(callsignOrSystemCommandName) {
         const command = AIRCRAFT_COMMAND_MAP[callsignOrSystemCommandName];
 
-        if (typeof command === 'undefined') {
+        if (typeof command === "undefined") {
             return false;
         }
 
-        return command.isSystemCommand && callsignOrSystemCommandName !== PARSED_COMMAND_NAME.TRANSMIT;
+        return (
+            command.isSystemCommand &&
+            callsignOrSystemCommandName !== PARSED_COMMAND_NAME.TRANSMIT
+        );
     }
 }
