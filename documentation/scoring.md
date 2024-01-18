@@ -47,9 +47,9 @@ vertically and 165 feet laterally).
 
 ## ~~Warning~~
 
-~~Any time a warning is issued for an aircraft 5 points are lost.  The
+~~Any time a warning is issued for an aircraft 5 points are lost. The
 most common warning is when two aircraft are separated by less 3
-nautical miles or less than 1000 feet of altitude.  However there are
+nautical miles or less than 1000 feet of altitude. However there are
 a number of situations where aircraft can be separated by less, for
 complete details refer to the
 [aircraft separation rules](aircraft-separation.md)~~
