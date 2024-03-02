@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: npm install
     - name: Find lint errors on changed lines
-      run: npm run lint-diff HEAD~1..HEAD
+      run: npm run lint
   build:
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: npm install
     - name: Build application
-      run: npm run build
+      run: yarn build
   test:
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +47,7 @@ jobs:
     - name: Install dependencies
       run: npm install
     - name: Run test suite
-      run: npm run test
+      run: yarn test
     - name: Check test coverage versus previous commit (via coveralls.io)
       uses: coverallsapp/github-action@master
       with:
